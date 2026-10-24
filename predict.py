@@ -1,33 +1,56 @@
-# predict.py
+"""Run inference for a handwritten digit image using a saved MNIST model."""
+
 import torch
 from PIL import Image
 from torchvision import transforms
+
 from model import load_model
 
-def predict(image_path, model_path="model.pth"):
+
+def predict(image_path, model_path="model.pth", top_k=3):
+    """Return the predicted digit, confidence, and top-k candidate probabilities."""
+    if not isinstance(top_k, int) or isinstance(top_k, bool) or top_k < 1:
+        raise ValueError("top_k must be a positive integer.")
+
     model = load_model(model_path)
+    with Image.open(image_path) as source_image:
+        image = source_image.convert("L").resize((28, 28))
 
-    img = Image.open(image_path).convert("L")  # convert to grayscale
-    img = img.resize((28, 28))                 # MNIST size
-
-    transform = transforms.Compose([
-        transforms.ToTensor()
-    ])
-
-    tensor_img = transform(img).unsqueeze(0)   # shape: (1, 1, 28, 28)
-
+    tensor_image = transforms.ToTensor()(image).unsqueeze(0)
     with torch.no_grad():
-        output = model(tensor_img)
-        probabilities = torch.softmax(output, dim=1)
-        predicted_digit = torch.argmax(probabilities).item()
-        confidence = probabilities[0][predicted_digit].item()
+        output = model(tensor_image)
+        if output.ndim != 2 or output.shape[0] != 1 or output.shape[1] != 10:
+            raise ValueError("Model must return logits with shape (1, 10).")
+        probabilities = torch.softmax(output, dim=1)[0]
+        count = min(top_k, probabilities.numel())
+        scores, digits = torch.topk(probabilities, k=count)
 
-    print(f"Predicted Digit: {predicted_digit}")
-    print(f"Confidence: {confidence:.3f}")
+    candidates = [
+        {"digit": int(digit), "confidence": float(score)}
+        for digit, score in zip(digits.tolist(), scores.tolist())
+    ]
+    result = {
+        "predicted_digit": candidates[0]["digit"],
+        "confidence": candidates[0]["confidence"],
+        "top_predictions": candidates,
+    }
+
+    print(f"Predicted Digit: {result['predicted_digit']}")
+    print(f"Confidence: {result['confidence']:.3f}")
+    if len(candidates) > 1:
+        alternatives = ", ".join(
+            f"{item['digit']} ({item['confidence']:.3f})" for item in candidates
+        )
+        print(f"Top candidates: {alternatives}")
+    return result
+
 
 if __name__ == "__main__":
-    import sys
-    if len(sys.argv) != 2:
-        print("Usage: python predict.py <image_path>")
-    else:
-        predict(sys.argv[1])
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Predict the digit shown in an image.")
+    parser.add_argument("image_path", help="Path to an image containing a handwritten digit")
+    parser.add_argument("--model", default="model.pth", help="Path to the trained model weights")
+    parser.add_argument("--top-k", type=int, default=3, help="Number of ranked candidates to return")
+    args = parser.parse_args()
+    predict(args.image_path, model_path=args.model, top_k=args.top_k)
