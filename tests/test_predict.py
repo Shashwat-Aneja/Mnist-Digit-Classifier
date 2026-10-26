@@ -43,3 +43,19 @@ def test_predict_rejects_unexpected_model_output_shape(tmp_path, monkeypatch):
 
     with pytest.raises(ValueError, match="shape \\(1, 10\\)"):
         predictor.predict(str(image_path), model_path="unused.pth")
+
+
+def test_preprocess_image_can_invert_light_background_scans(tmp_path):
+    image_path = tmp_path / "light-background.png"
+    image = Image.new("L", (28, 28), color=255)
+    image.putpixel((0, 0), 0)
+    image.save(image_path)
+
+    original = predictor.preprocess_image(str(image_path))
+    inverted = predictor.preprocess_image(str(image_path), invert=True)
+
+    assert original.shape == (1, 1, 28, 28)
+    assert original[0, 0, 0, 0].item() == 0.0
+    assert inverted[0, 0, 0, 0].item() == 1.0
+    assert original[0, 0, 1, 1].item() == 1.0
+    assert inverted[0, 0, 1, 1].item() == 0.0
