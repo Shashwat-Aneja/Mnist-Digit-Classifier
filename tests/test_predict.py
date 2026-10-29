@@ -59,3 +59,16 @@ def test_preprocess_image_can_invert_light_background_scans(tmp_path):
     assert inverted[0, 0, 0, 0].item() == 1.0
     assert original[0, 0, 1, 1].item() == 1.0
     assert inverted[0, 0, 1, 1].item() == 0.0
+
+
+def test_preprocess_image_composites_transparency_onto_dark_background(tmp_path):
+    image_path = tmp_path / "transparent-digit.png"
+    image = Image.new("RGBA", (28, 28), color=(255, 255, 255, 0))
+    image.putpixel((0, 0), (255, 255, 255, 255))
+    image.save(image_path)
+
+    tensor = predictor.preprocess_image(str(image_path))
+
+    assert tensor.shape == (1, 1, 28, 28)
+    assert tensor[0, 0, 0, 0].item() == 1.0
+    assert tensor[0, 0, 1, 1].item() == 0.0
