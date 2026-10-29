@@ -14,7 +14,12 @@ def preprocess_image(image_path, invert=False):
     trained model expects the usual MNIST light-digit-on-dark-background style.
     """
     with Image.open(image_path) as source_image:
-        image = source_image.convert("L")
+        # Composite transparent pixels onto the model's dark background before
+        # grayscale conversion. Otherwise hidden RGB values can become visible
+        # and make transparent PNGs appear inverted or unexpectedly bright.
+        rgba_image = source_image.convert("RGBA")
+        background = Image.new("RGBA", rgba_image.size, (0, 0, 0, 255))
+        image = Image.alpha_composite(background, rgba_image).convert("L")
         if invert:
             image = ImageOps.invert(image)
         image = image.resize((28, 28))
