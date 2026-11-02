@@ -47,6 +47,14 @@ def _rank_predictions(probabilities, top_k):
     }
 
 
+def _validate_logits(output, expected_shape):
+    """Reject malformed or non-finite model output before applying softmax."""
+    if output.ndim != 2 or tuple(output.shape) != expected_shape:
+        raise ValueError(f"Model must return logits with shape {expected_shape}.")
+    if not torch.isfinite(output).all():
+        raise ValueError("Model returned non-finite logits.")
+
+
 def predict(image_path, model_path="model.pth", top_k=3, invert=False):
     """Return the predicted digit, confidence, and top-k candidate probabilities."""
     if not isinstance(top_k, int) or isinstance(top_k, bool) or top_k < 1:
@@ -56,8 +64,7 @@ def predict(image_path, model_path="model.pth", top_k=3, invert=False):
     tensor_image = preprocess_image(image_path, invert=invert)
     with torch.no_grad():
         output = model(tensor_image)
-        if output.ndim != 2 or output.shape[0] != 1 or output.shape[1] != 10:
-            raise ValueError("Model must return logits with shape (1, 10).")
+        _validate_logits(output, (1, 10))
         result = _rank_predictions(torch.softmax(output, dim=1)[0], top_k)
 
     print(f"Predicted Digit: {result['predicted_digit']}")
@@ -89,8 +96,7 @@ def predict_batch(image_paths, model_path="model.pth", top_k=3, invert=False):
     with torch.no_grad():
         output = model(batch)
         expected_shape = (len(paths), 10)
-        if output.ndim != 2 or tuple(output.shape) != expected_shape:
-            raise ValueError(f"Model must return logits with shape {expected_shape}.")
+        _validate_logits(output, expected_shape)
         probabilities = torch.softmax(output, dim=1)
         return [
             _rank_predictions(row, top_k)
