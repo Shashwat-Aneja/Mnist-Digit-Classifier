@@ -112,3 +112,35 @@ def test_predict_batch_rejects_empty_or_single_string_input():
         predictor.predict_batch([])
     with pytest.raises(ValueError, match="not a single string"):
         predictor.predict_batch("one-image.png")
+
+
+def test_predict_rejects_non_finite_model_logits(tmp_path, monkeypatch):
+    image_path = tmp_path / "digit.png"
+    Image.new("L", (28, 28), color=0).save(image_path)
+
+    class NonFiniteModel:
+        def __call__(self, _image_tensor):
+            return torch.tensor([[0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, float("nan"), 0.8, 0.7]])
+
+    monkeypatch.setattr(predictor, "load_model", lambda _path: NonFiniteModel())
+
+    with pytest.raises(ValueError, match="non-finite logits"):
+        predictor.predict(str(image_path), model_path="unused.pth")
+
+
+def test_predict_batch_rejects_non_finite_model_logits(tmp_path, monkeypatch):
+    image_paths = [tmp_path / "first.png", tmp_path / "second.png"]
+    Image.new("L", (28, 28), color=255).save(image_paths[0])
+    Image.new("L", (28, 28), color=0).save(image_paths[1])
+
+    class NonFiniteBatchModel:
+        def __call__(self, _image_batch):
+            return torch.tensor([
+                [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 4.0, 0.8, 0.7],
+                [0.0, 3.0, 0.2, 0.3, 0.4, 0.5, 0.6, float("inf"), 0.8, 0.9],
+            ])
+
+    monkeypatch.setattr(predictor, "load_model", lambda _path: NonFiniteBatchModel())
+
+    with pytest.raises(ValueError, match="non-finite logits"):
+        predictor.predict_batch([str(path) for path in image_paths], model_path="unused.pth")
