@@ -39,10 +39,26 @@ def test_predict_returns_ranked_candidate_probabilities(tmp_path, monkeypatch, c
     assert "Top candidates:" in capsys.readouterr().out
 
 
-@pytest.mark.parametrize("top_k", [0, -1, True, 1.5])
+@pytest.mark.parametrize("top_k", [0, -1, True, 1.5, 11, 100])
 def test_predict_rejects_invalid_top_k(top_k):
-    with pytest.raises(ValueError, match="positive integer"):
+    with pytest.raises(ValueError, match="between 1 and 10"):
         predictor.predict("unused.png", top_k=top_k)
+
+
+@pytest.mark.parametrize("top_k", [11, 100])
+def test_predict_batch_rejects_more_candidates_than_digit_classes(top_k):
+    with pytest.raises(ValueError, match="between 1 and 10"):
+        predictor.predict_batch(["unused.png"], top_k=top_k)
+
+
+def test_predict_can_return_all_ten_digit_candidates(tmp_path, monkeypatch):
+    image_path = tmp_path / "digit.png"
+    Image.new("L", (28, 28), color=0).save(image_path)
+    monkeypatch.setattr(predictor, "load_model", lambda _path: FakeModel())
+
+    result = predictor.predict(str(image_path), model_path="unused.pth", top_k=10)
+
+    assert len(result["top_predictions"]) == 10
 
 
 def test_predict_rejects_unexpected_model_output_shape(tmp_path, monkeypatch):
