@@ -6,6 +6,8 @@ from torchvision import transforms
 
 from model import load_model
 
+NUM_CLASSES = 10
+
 
 def preprocess_image(image_path, invert=False):
     """Convert an image to the 28x28 grayscale tensor expected by the model.
@@ -33,6 +35,16 @@ def preprocess_image(image_path, invert=False):
     return transforms.ToTensor()(image).unsqueeze(0)
 
 
+def _validate_top_k(top_k):
+    """Require a candidate count that fits the ten MNIST output classes."""
+    if (
+        not isinstance(top_k, int)
+        or isinstance(top_k, bool)
+        or not 1 <= top_k <= NUM_CLASSES
+    ):
+        raise ValueError(f"top_k must be an integer between 1 and {NUM_CLASSES}.")
+
+
 def _rank_predictions(probabilities, top_k):
     count = min(top_k, probabilities.numel())
     scores, digits = torch.topk(probabilities, k=count)
@@ -57,8 +69,7 @@ def _validate_logits(output, expected_shape):
 
 def predict(image_path, model_path="model.pth", top_k=3, invert=False):
     """Return the predicted digit, confidence, and top-k candidate probabilities."""
-    if not isinstance(top_k, int) or isinstance(top_k, bool) or top_k < 1:
-        raise ValueError("top_k must be a positive integer.")
+    _validate_top_k(top_k)
 
     model = load_model(model_path)
     tensor_image = preprocess_image(image_path, invert=invert)
@@ -85,8 +96,7 @@ def predict_batch(image_paths, model_path="model.pth", top_k=3, invert=False):
     paths = list(image_paths)
     if not paths:
         raise ValueError("image_paths must contain at least one image path.")
-    if not isinstance(top_k, int) or isinstance(top_k, bool) or top_k < 1:
-        raise ValueError("top_k must be a positive integer.")
+    _validate_top_k(top_k)
 
     model = load_model(model_path)
     batch = torch.cat(
