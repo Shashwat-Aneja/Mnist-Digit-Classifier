@@ -160,3 +160,44 @@ def test_predict_batch_rejects_non_finite_model_logits(tmp_path, monkeypatch):
 
     with pytest.raises(ValueError, match="non-finite logits"):
         predictor.predict_batch([str(path) for path in image_paths], model_path="unused.pth")
+
+
+class RecordingBatchModel:
+    def __init__(self):
+        self.batch_sizes = []
+        self.next_digit = 0
+
+    def __call__(self, image_batch):
+        self.batch_sizes.append(image_batch.shape[0])
+        logits = torch.zeros((image_batch.shape[0], 10))
+        for row in range(image_batch.shape[0]):
+            logits[row, self.next_digit % 10] = 10.0
+            self.next_digit += 1
+        return logits
+
+
+def test_predict_batch_chunks_large_inputs_and_preserves_result_order(tmp_path, monkeypatch):
+    image_paths = []
+    for index in range(5):
+        image_path = tmp_path / f"digit-{index}.png"
+        Image.new("L", (28, 28), color=index * 20).save(image_path)
+        image_paths.append(str(image_path))
+
+    model = RecordingBatchModel()
+    monkeypatch.setattr(predictor, "load_model", lambda _path: model)
+
+    results = predictor.predict_batch(
+        image_paths,
+        model_path="unused.pth",
+        top_k=1,
+        batch_size=2,
+    )
+
+    assert model.batch_sizes == [2, 2, 1]
+    assert [result["predicted_digit"] for result in results] == [0, 1, 2, 3, 4]
+
+
+@pytest.mark.parametrize("batch_size", [0, -1, True, 1.5, "2"])
+def test_predict_batch_rejects_invalid_batch_sizes(batch_size):
+    with pytest.raises(ValueError, match="positive integer"):
+        predictor.predict_batch(["unused.png"], batch_size=batch_size)
