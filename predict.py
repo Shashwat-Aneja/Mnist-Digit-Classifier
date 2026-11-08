@@ -7,6 +7,7 @@ from torchvision import transforms
 from model import load_model
 
 NUM_CLASSES = 10
+DEFAULT_BATCH_SIZE = 32
 
 
 def preprocess_image(image_path, invert=False):
@@ -89,30 +90,50 @@ def predict(image_path, model_path="model.pth", top_k=3, invert=False):
     return result
 
 
-def predict_batch(image_paths, model_path="model.pth", top_k=3, invert=False):
-    """Predict multiple images with one model load and one forward pass."""
+def _validate_batch_size(batch_size):
+    """Require a positive integer to keep batch inference memory bounded."""
+    if (
+        not isinstance(batch_size, int)
+        or isinstance(batch_size, bool)
+        or batch_size < 1
+    ):
+        raise ValueError("batch_size must be a positive integer.")
+
+
+def predict_batch(
+    image_paths,
+    model_path="model.pth",
+    top_k=3,
+    invert=False,
+    batch_size=DEFAULT_BATCH_SIZE,
+):
+    """Predict multiple images in bounded chunks while preserving input order."""
     if isinstance(image_paths, (str, bytes)):
         raise ValueError("image_paths must be an iterable of image paths, not a single string.")
     paths = list(image_paths)
     if not paths:
         raise ValueError("image_paths must contain at least one image path.")
     _validate_top_k(top_k)
+    _validate_batch_size(batch_size)
 
     model = load_model(model_path)
-    batch = torch.cat(
-        [preprocess_image(path, invert=invert) for path in paths],
-        dim=0,
-    )
+    results = []
     with torch.no_grad():
-        output = model(batch)
-        expected_shape = (len(paths), 10)
-        _validate_logits(output, expected_shape)
-        probabilities = torch.softmax(output, dim=1)
-        return [
-            _rank_predictions(row, top_k)
-            for row in probabilities
-        ]
-
+        for start_index in range(0, len(paths), batch_size):
+            chunk_paths = paths[start_index : start_index + batch_size]
+            batch = torch.cat(
+                [preprocess_image(path, invert=invert) for path in chunk_paths],
+                dim=0,
+            )
+            output = model(batch)
+            expected_shape = (len(chunk_paths), NUM_CLASSES)
+            _validate_logits(output, expected_shape)
+            probabilities = torch.softmax(output, dim=1)
+            results.extend(
+                _rank_predictions(row, top_k)
+                for row in probabilities
+            )
+    return results
 
 if __name__ == "__main__":
     import argparse
