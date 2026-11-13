@@ -2,7 +2,7 @@
 import torch
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
-from model import DigitClassifier
+from model import load_model
 
 def evaluate_model(model_path="model.pth"):
     transform = transforms.Compose([transforms.ToTensor()])
@@ -10,9 +10,7 @@ def evaluate_model(model_path="model.pth"):
     test_data = datasets.MNIST(root=".", train=False, transform=transform, download=True)
     test_loader = DataLoader(test_data, batch_size=64)
 
-    model = DigitClassifier()
-    model.load_state_dict(torch.load(model_path, map_location="cpu"))
-    model.eval()
+    model = load_model(model_path)
 
     correct = 0
     total = 0
