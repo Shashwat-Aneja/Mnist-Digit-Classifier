@@ -18,6 +18,6 @@ class DigitClassifier(nn.Module):
 
 def load_model(path="model.pth"):
     model = DigitClassifier()
-    model.load_state_dict(torch.load(path, map_location="cpu"))
+    model.load_state_dict(torch.load(path, map_location="cpu", weights_only=True))
     model.eval()
     return model
