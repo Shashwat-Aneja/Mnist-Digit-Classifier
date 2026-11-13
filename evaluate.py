@@ -22,6 +22,9 @@ def evaluate_model(model_path="model.pth"):
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
 
+    if total == 0:
+        raise ValueError("Evaluation dataset contains no samples")
+
     accuracy = 100 * correct / total
     print(f"Test Accuracy: {accuracy:.2f}%")
 
