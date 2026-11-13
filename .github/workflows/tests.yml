@@ -1,0 +1,21 @@
+name: MNIST regression tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install CPU-only PyTorch and test dependencies
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision
+          python -m pip install pillow pytest
+      - name: Run tests without downloading MNIST data
+        run: python -m pytest -q
