@@ -66,3 +66,5 @@ cd mnist-digit-classifier
 Training now uses the same `DigitClassifier` architecture as inference, so saved state-dictionary keys load correctly. Run `python train.py --epochs 5 --output model.pth`; importing `train` no longer downloads data or starts training.
 
 Inference applies EXIF orientation before resizing, keeping phone-camera digits aligned with their displayed orientation.
+
+Batch inference consumes input-path iterators one chunk at a time instead of materializing the complete path list. Prediction results remain in input order.

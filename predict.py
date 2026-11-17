@@ -1,6 +1,7 @@
 """Run inference for handwritten digit images using a saved MNIST model."""
 
 import torch
+from itertools import islice
 from PIL import Image, ImageOps
 from torchvision import transforms
 
@@ -110,17 +111,18 @@ def predict_batch(
     """Predict multiple images in bounded chunks while preserving input order."""
     if isinstance(image_paths, (str, bytes)):
         raise ValueError("image_paths must be an iterable of image paths, not a single string.")
-    paths = list(image_paths)
-    if not paths:
-        raise ValueError("image_paths must contain at least one image path.")
     _validate_top_k(top_k)
     _validate_batch_size(batch_size)
+    iterator = iter(image_paths)
+    first_chunk = list(islice(iterator, batch_size))
+    if not first_chunk:
+        raise ValueError("image_paths must contain at least one image path.")
 
     model = load_model(model_path)
     results = []
     with torch.no_grad():
-        for start_index in range(0, len(paths), batch_size):
-            chunk_paths = paths[start_index : start_index + batch_size]
+        chunk_paths = first_chunk
+        while chunk_paths:
             batch = torch.cat(
                 [preprocess_image(path, invert=invert) for path in chunk_paths],
                 dim=0,
@@ -133,6 +135,7 @@ def predict_batch(
                 _rank_predictions(row, top_k)
                 for row in probabilities
             )
+            chunk_paths = list(islice(iterator, batch_size))
     return results
 
 if __name__ == "__main__":
