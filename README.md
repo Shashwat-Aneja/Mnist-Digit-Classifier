@@ -61,3 +61,12 @@ pip install torch torchvision matplotlib pillow
 git clone https://github.com/<your-username>/mnist-digit-classifier.git
 cd mnist-digit-classifier
 ```
+
+
+Training now uses the same `DigitClassifier` architecture as inference, so saved state-dictionary keys load correctly. Run `python train.py --epochs 5 --output model.pth`; importing `train` no longer downloads data or starts training.
+
+Inference applies EXIF orientation before resizing, keeping phone-camera digits aligned with their displayed orientation.
+
+Batch inference consumes input-path iterators one chunk at a time instead of materializing the complete path list. Prediction results remain in input order.
+
+`evaluate_model()` returns accuracy, sample count, correct count, and a 10×10 confusion matrix (rows are true labels, columns predicted labels). Malformed or non-finite model logits are rejected.
