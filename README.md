@@ -61,3 +61,6 @@ pip install torch torchvision matplotlib pillow
 git clone https://github.com/<your-username>/mnist-digit-classifier.git
 cd mnist-digit-classifier
 ```
+
+
+Training now uses the same `DigitClassifier` architecture as inference, so saved state-dictionary keys load correctly. Run `python train.py --epochs 5 --output model.pth`; importing `train` no longer downloads data or starts training.
