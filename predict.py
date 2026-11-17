@@ -20,7 +20,7 @@ def preprocess_image(image_path, invert=False):
         # Composite transparent pixels onto the model's dark background before
         # grayscale conversion. Otherwise hidden RGB values can become visible
         # and make transparent PNGs appear inverted or unexpectedly bright.
-        rgba_image = source_image.convert("RGBA")
+        rgba_image = ImageOps.exif_transpose(source_image).convert("RGBA")
         background = Image.new("RGBA", rgba_image.size, (0, 0, 0, 255))
         image = Image.alpha_composite(background, rgba_image).convert("L")
         if invert:
@@ -149,3 +149,4 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     predict(args.image_path, model_path=args.model, top_k=args.top_k, invert=args.invert)
+
