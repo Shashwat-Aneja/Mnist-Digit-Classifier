@@ -9,6 +9,7 @@ from model import load_model
 
 NUM_CLASSES = 10
 DEFAULT_BATCH_SIZE = 32
+MAX_BATCH_SIZE = 1024
 
 
 def preprocess_image(image_path, invert=False):
@@ -96,9 +97,9 @@ def _validate_batch_size(batch_size):
     if (
         not isinstance(batch_size, int)
         or isinstance(batch_size, bool)
-        or batch_size < 1
+        or not 1 <= batch_size <= MAX_BATCH_SIZE
     ):
-        raise ValueError("batch_size must be a positive integer.")
+        raise ValueError(f"batch_size must be a positive integer no greater than {MAX_BATCH_SIZE}.")
 
 
 def predict_batch(
