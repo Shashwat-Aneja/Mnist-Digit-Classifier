@@ -74,3 +74,5 @@ Batch inference consumes input-path iterators one chunk at a time instead of mat
 Batch inference enforces a maximum batch size of 1,024 images. Oversized values are rejected before paths are consumed or a model is loaded, preserving the bounded-memory contract.
 
 Training writes a complete temporary checkpoint and atomically replaces the previous weights only after the save succeeds. Save failures clean up the partial file and preserve the previous checkpoint.
+
+Transparent images are composited onto the appropriate input background before polarity inversion, so `--invert` no longer turns fully transparent background pixels into bright foreground noise.

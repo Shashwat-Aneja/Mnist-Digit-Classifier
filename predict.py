@@ -23,7 +23,8 @@ def preprocess_image(image_path, invert=False):
         # grayscale conversion. Otherwise hidden RGB values can become visible
         # and make transparent PNGs appear inverted or unexpectedly bright.
         rgba_image = ImageOps.exif_transpose(source_image).convert("RGBA")
-        background = Image.new("RGBA", rgba_image.size, (0, 0, 0, 255))
+        background_color = (255, 255, 255, 255) if invert else (0, 0, 0, 255)
+        background = Image.new("RGBA", rgba_image.size, background_color)
         image = Image.alpha_composite(background, rgba_image).convert("L")
         if invert:
             image = ImageOps.invert(image)
