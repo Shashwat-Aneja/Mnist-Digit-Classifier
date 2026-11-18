@@ -1,11 +1,29 @@
 """Train weights compatible with the shared digit-classifier loader."""
 import argparse
 from pathlib import Path
+import os
+import tempfile
 import torch
 from torch import nn
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 from model import DigitClassifier
+
+
+def save_checkpoint_atomic(state_dict, destination):
+    destination = Path(destination)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="wb", dir=destination.parent, suffix=".pth", delete=False) as handle:
+            temporary = Path(handle.name)
+            torch.save(state_dict, handle)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, destination)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
 
 
 def train_model(output_path="model.pth", epochs=5, train_loader=None):
@@ -31,7 +49,7 @@ def train_model(output_path="model.pth", epochs=5, train_loader=None):
         print(f"Epoch {epoch + 1} completed.")
     destination = Path(output_path)
     destination.parent.mkdir(parents=True, exist_ok=True)
-    torch.save(model.state_dict(), destination)
+    save_checkpoint_atomic(model.state_dict(), destination)
     return model
 
 
