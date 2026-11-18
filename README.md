@@ -70,3 +70,9 @@ Inference applies EXIF orientation before resizing, keeping phone-camera digits 
 Batch inference consumes input-path iterators one chunk at a time instead of materializing the complete path list. Prediction results remain in input order.
 
 `evaluate_model()` returns accuracy, sample count, correct count, and a 10×10 confusion matrix (rows are true labels, columns predicted labels). Malformed or non-finite model logits are rejected.
+
+Batch inference enforces a maximum batch size of 1,024 images. Oversized values are rejected before paths are consumed or a model is loaded, preserving the bounded-memory contract.
+
+Training writes a complete temporary checkpoint and atomically replaces the previous weights only after the save succeeds. Save failures clean up the partial file and preserve the previous checkpoint.
+
+Transparent images are composited onto the appropriate input background before polarity inversion, so `--invert` no longer turns fully transparent background pixels into bright foreground noise.
