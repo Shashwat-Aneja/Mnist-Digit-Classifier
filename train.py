@@ -39,10 +39,21 @@ def train_model(output_path="model.pth", epochs=5, train_loader=None):
     for epoch in range(epochs):
         samples = 0
         for images, labels in train_loader:
+            if not torch.isfinite(images).all():
+                raise ValueError("Training images must contain finite values")
             optimizer.zero_grad()
-            loss = loss_fn(model(images), labels)
+            logits = model(images)
+            if not torch.isfinite(logits).all():
+                raise ValueError("Training model returned non-finite logits")
+            loss = loss_fn(logits, labels)
+            if not torch.isfinite(loss):
+                raise ValueError("Training loss must be finite")
             loss.backward()
+            if any(parameter.grad is not None and not torch.isfinite(parameter.grad).all() for parameter in model.parameters()):
+                raise ValueError("Training gradients must be finite")
             optimizer.step()
+            if any(not torch.isfinite(parameter).all() for parameter in model.parameters()):
+                raise ValueError("Training weights must remain finite")
             samples += len(labels)
         if samples == 0:
             raise ValueError("Training dataset contains no samples")
