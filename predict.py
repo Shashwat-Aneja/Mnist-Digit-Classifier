@@ -51,7 +51,8 @@ def _validate_top_k(top_k):
 
 def _rank_predictions(probabilities, top_k):
     count = min(top_k, probabilities.numel())
-    scores, digits = torch.topk(probabilities, k=count)
+    digits = torch.argsort(probabilities, descending=True, stable=True)[:count]
+    scores = probabilities[digits]
     candidates = [
         {"digit": int(digit), "confidence": float(score)}
         for digit, score in zip(digits.tolist(), scores.tolist())

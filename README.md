@@ -76,3 +76,5 @@ Batch inference enforces a maximum batch size of 1,024 images. Oversized values 
 Training writes a complete temporary checkpoint and atomically replaces the previous weights only after the save succeeds. Save failures clean up the partial file and preserve the previous checkpoint.
 
 Transparent images are composited onto the appropriate input background before polarity inversion, so `--invert` no longer turns fully transparent background pixels into bright foreground noise.
+
+Equal inference probabilities use ascending digit indexes as the deterministic tie-breaker for single-image and batch rankings.
