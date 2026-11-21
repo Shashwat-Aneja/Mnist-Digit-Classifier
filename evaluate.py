@@ -5,13 +5,13 @@ from torch.utils.data import DataLoader
 from model import load_model
 from predict import _validate_logits
 
-def evaluate_model(model_path="model.pth"):
-    transform = transforms.Compose([transforms.ToTensor()])
-
-    test_data = datasets.MNIST(root=".", train=False, transform=transform, download=True)
-    test_loader = DataLoader(test_data, batch_size=64)
-
+def evaluate_model(model_path="model.pth", test_loader=None):
     model = load_model(model_path)
+    if test_loader is None:
+        transform = transforms.Compose([transforms.ToTensor()])
+    
+        test_data = datasets.MNIST(root=".", train=False, transform=transform, download=True)
+        test_loader = DataLoader(test_data, batch_size=64)
 
     correct = 0
     total = 0

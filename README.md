@@ -78,3 +78,9 @@ Training writes a complete temporary checkpoint and atomically replaces the prev
 Transparent images are composited onto the appropriate input background before polarity inversion, so `--invert` no longer turns fully transparent background pixels into bright foreground noise.
 
 Equal inference probabilities use ascending digit indexes as the deterministic tie-breaker for single-image and batch rankings.
+
+`python predict.py digit.png --json` emits only a structured prediction and ranked candidates. Programmatic callers can suppress the human report with `print_report=False`.
+
+`evaluate_model(model_path, test_loader=loader)` evaluates an existing compatible digit loader without requesting MNIST. The same label/logit validation and confusion-matrix metrics apply.
+
+`python train.py --seed 7` seeds PyTorch initialization and loader randomness. Identical synthetic CPU runs are regression-tested; different hardware, versions and nondeterministic kernels can still change results. Supplying a seed changes the process PyTorch RNG state.

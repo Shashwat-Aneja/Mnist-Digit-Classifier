@@ -26,9 +26,13 @@ def save_checkpoint_atomic(state_dict, destination):
             temporary.unlink(missing_ok=True)
 
 
-def train_model(output_path="model.pth", epochs=5, train_loader=None):
+def train_model(output_path="model.pth", epochs=5, train_loader=None, seed=None):
     if not isinstance(epochs, int) or isinstance(epochs, bool) or epochs < 1:
         raise ValueError("epochs must be a positive integer")
+    if seed is not None:
+        if not isinstance(seed, int) or isinstance(seed, bool) or not 0 <= seed < 2**63:
+            raise ValueError("seed must be an integer from 0 through 2**63 - 1")
+        torch.manual_seed(seed)
     if train_loader is None:
         data = datasets.MNIST(root=".", train=True, transform=transforms.ToTensor(), download=True)
         train_loader = DataLoader(data, batch_size=64, shuffle=True)
@@ -68,8 +72,9 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Train the shared MNIST digit classifier")
     parser.add_argument("--output", default="model.pth")
     parser.add_argument("--epochs", type=int, default=5)
+    parser.add_argument("--seed", type=int, help="Seed PyTorch model initialization and data-loader randomness for reproducible local runs")
     args = parser.parse_args(argv)
-    train_model(args.output, args.epochs)
+    train_model(args.output, args.epochs, **({"seed": args.seed} if args.seed is not None else {}))
 
 
 if __name__ == "__main__":
