@@ -80,3 +80,5 @@ Transparent images are composited onto the appropriate input background before p
 Equal inference probabilities use ascending digit indexes as the deterministic tie-breaker for single-image and batch rankings.
 
 `python predict.py digit.png --json` emits only a structured prediction and ranked candidates. Programmatic callers can suppress the human report with `print_report=False`.
+
+`evaluate_model(model_path, test_loader=loader)` evaluates an existing compatible digit loader without requesting MNIST. The same label/logit validation and confusion-matrix metrics apply.
