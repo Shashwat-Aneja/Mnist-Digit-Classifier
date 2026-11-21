@@ -6,12 +6,11 @@ from model import load_model
 from predict import _validate_logits
 
 def evaluate_model(model_path="model.pth"):
+    model = load_model(model_path)
     transform = transforms.Compose([transforms.ToTensor()])
 
     test_data = datasets.MNIST(root=".", train=False, transform=transform, download=True)
     test_loader = DataLoader(test_data, batch_size=64)
-
-    model = load_model(model_path)
 
     correct = 0
     total = 0
