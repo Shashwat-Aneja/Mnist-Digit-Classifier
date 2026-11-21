@@ -72,7 +72,7 @@ def _validate_logits(output, expected_shape):
         raise ValueError("Model returned non-finite logits.")
 
 
-def predict(image_path, model_path="model.pth", top_k=3, invert=False):
+def predict(image_path, model_path="model.pth", top_k=3, invert=False, print_report=True):
     """Return the predicted digit, confidence, and top-k candidate probabilities."""
     _validate_top_k(top_k)
 
@@ -83,14 +83,15 @@ def predict(image_path, model_path="model.pth", top_k=3, invert=False):
         _validate_logits(output, (1, 10))
         result = _rank_predictions(torch.softmax(output, dim=1)[0], top_k)
 
-    print(f"Predicted Digit: {result['predicted_digit']}")
-    print(f"Confidence: {result['confidence']:.3f}")
-    if len(result["top_predictions"]) > 1:
-        alternatives = ", ".join(
-            f"{item['digit']} ({item['confidence']:.3f})"
-            for item in result["top_predictions"]
-        )
-        print(f"Top candidates: {alternatives}")
+    if print_report:
+        print(f"Predicted Digit: {result['predicted_digit']}")
+        print(f"Confidence: {result['confidence']:.3f}")
+        if len(result["top_predictions"]) > 1:
+            alternatives = ", ".join(
+                f"{item['digit']} ({item['confidence']:.3f})"
+                for item in result["top_predictions"]
+            )
+            print(f"Top candidates: {alternatives}")
     return result
 
 
@@ -141,8 +142,9 @@ def predict_batch(
             chunk_paths = list(islice(iterator, batch_size))
     return results
 
-if __name__ == "__main__":
+def main(argv=None):
     import argparse
+    import json
 
     parser = argparse.ArgumentParser(description="Predict the digit shown in an image.")
     parser.add_argument("image_path", help="Path to an image containing a handwritten digit")
@@ -153,6 +155,14 @@ if __name__ == "__main__":
         action="store_true",
         help="Invert light backgrounds with dark ink to match MNIST image polarity",
     )
-    args = parser.parse_args()
-    predict(args.image_path, model_path=args.model, top_k=args.top_k, invert=args.invert)
+    parser.add_argument("--json", action="store_true", help="Print only the structured digit prediction as JSON")
+    args = parser.parse_args(argv)
+    result = predict(args.image_path, model_path=args.model, top_k=args.top_k, invert=args.invert, **({"print_report": False} if args.json else {}))
+    if args.json:
+        print(json.dumps(result, allow_nan=False))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
 
