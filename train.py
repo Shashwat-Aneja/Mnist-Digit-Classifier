@@ -26,6 +26,14 @@ def save_checkpoint_atomic(state_dict, destination):
             temporary.unlink(missing_ok=True)
 
 
+def validate_training_batch(images, labels):
+    if not torch.is_tensor(images) or images.dtype != torch.float32 or tuple(images.shape[1:]) not in ((28, 28), (1, 28, 28)) or images.ndim not in (3, 4):
+        raise ValueError("Training images must be float32 digit batches shaped N x 28 x 28 or N x 1 x 28 x 28")
+    if not torch.is_tensor(labels) or labels.ndim != 1 or labels.dtype not in (torch.int32, torch.int64) or len(labels) != len(images) or not len(labels) or ((labels < 0) | (labels > 9)).any():
+        raise ValueError("Training labels must align with images and contain digit indexes 0 through 9")
+    return labels.to(torch.int64)
+
+
 def train_model(output_path="model.pth", epochs=5, train_loader=None, seed=None):
     if not isinstance(epochs, int) or isinstance(epochs, bool) or epochs < 1:
         raise ValueError("epochs must be a positive integer")
@@ -43,6 +51,7 @@ def train_model(output_path="model.pth", epochs=5, train_loader=None, seed=None)
     for epoch in range(epochs):
         samples = 0
         for images, labels in train_loader:
+            labels = validate_training_batch(images, labels)
             if not torch.isfinite(images).all():
                 raise ValueError("Training images must contain finite values")
             optimizer.zero_grad()
