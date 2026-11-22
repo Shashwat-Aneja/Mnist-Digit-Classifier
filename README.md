@@ -84,3 +84,5 @@ Equal inference probabilities use ascending digit indexes as the deterministic t
 `evaluate_model(model_path, test_loader=loader)` evaluates an existing compatible digit loader without requesting MNIST. The same label/logit validation and confusion-matrix metrics apply.
 
 `python train.py --seed 7` seeds PyTorch initialization and loader randomness. Identical synthetic CPU runs are regression-tested; different hardware, versions and nondeterministic kernels can still change results. Supplying a seed changes the process PyTorch RNG state.
+
+`iter_predictions(paths, batch_size=32)` yields predictions while retaining only one bounded chunk. `predict_batch` still returns a list. The iterator restores gradient mode before yielding to the caller.
