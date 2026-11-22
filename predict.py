@@ -30,7 +30,7 @@ def preprocess_image(image_path, invert=False):
             image = ImageOps.invert(image)
         # Preserve the digit's aspect ratio and center it on the model canvas.
         # Stretching a wide or tall scan to 28x28 can distort the digit shape.
-        image.thumbnail((28, 28), Image.Resampling.LANCZOS)
+        image = ImageOps.contain(image, (28, 28), Image.Resampling.LANCZOS)
         canvas = Image.new("L", (28, 28), color=0)
         offset = ((28 - image.width) // 2, (28 - image.height) // 2)
         canvas.paste(image, offset)
@@ -105,42 +105,38 @@ def _validate_batch_size(batch_size):
         raise ValueError(f"batch_size must be a positive integer no greater than {MAX_BATCH_SIZE}.")
 
 
-def predict_batch(
+def iter_predictions(
     image_paths,
     model_path="model.pth",
     top_k=3,
     invert=False,
     batch_size=DEFAULT_BATCH_SIZE,
 ):
-    """Predict multiple images in bounded chunks while preserving input order."""
+    """Yield predictions in bounded chunks without retaining all results."""
     if isinstance(image_paths, (str, bytes)):
         raise ValueError("image_paths must be an iterable of image paths, not a single string.")
     _validate_top_k(top_k)
     _validate_batch_size(batch_size)
     iterator = iter(image_paths)
-    first_chunk = list(islice(iterator, batch_size))
-    if not first_chunk:
+    chunk_paths = list(islice(iterator, batch_size))
+    if not chunk_paths:
         raise ValueError("image_paths must contain at least one image path.")
-
     model = load_model(model_path)
-    results = []
-    with torch.no_grad():
-        chunk_paths = first_chunk
-        while chunk_paths:
-            batch = torch.cat(
-                [preprocess_image(path, invert=invert) for path in chunk_paths],
-                dim=0,
-            )
+    while chunk_paths:
+        with torch.no_grad():
+            batch = torch.cat([preprocess_image(path, invert=invert) for path in chunk_paths], dim=0)
             output = model(batch)
-            expected_shape = (len(chunk_paths), NUM_CLASSES)
-            _validate_logits(output, expected_shape)
+            _validate_logits(output, (len(chunk_paths), NUM_CLASSES))
             probabilities = torch.softmax(output, dim=1)
-            results.extend(
-                _rank_predictions(row, top_k)
-                for row in probabilities
-            )
-            chunk_paths = list(islice(iterator, batch_size))
-    return results
+            chunk_results = [_rank_predictions(row, top_k) for row in probabilities]
+        yield from chunk_results
+        chunk_paths = list(islice(iterator, batch_size))
+
+
+def predict_batch(image_paths, model_path="model.pth", top_k=3, invert=False, batch_size=DEFAULT_BATCH_SIZE):
+    """Return all predictions; use iter_predictions for streaming consumption."""
+    return list(iter_predictions(image_paths, model_path=model_path, top_k=top_k, invert=invert, batch_size=batch_size))
+
 
 def main(argv=None):
     import argparse
