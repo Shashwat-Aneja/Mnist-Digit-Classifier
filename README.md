@@ -86,3 +86,5 @@ Equal inference probabilities use ascending digit indexes as the deterministic t
 `python train.py --seed 7` seeds PyTorch initialization and loader randomness. Identical synthetic CPU runs are regression-tested; different hardware, versions and nondeterministic kernels can still change results. Supplying a seed changes the process PyTorch RNG state.
 
 `iter_predictions(paths, batch_size=32)` yields predictions while retaining only one bounded chunk. `predict_batch` still returns a list. The iterator restores gradient mode before yielding to the caller.
+
+Local checkpoint paths are checked against a 16 MiB file-size budget before deserialization, well above the fixed classifier’s normal checkpoint size. This catches accidental oversized inputs; it is not a guarantee against every malformed archive. The loader still uses weights-only CPU deserialization and validates tensor shapes and finite values.
