@@ -30,7 +30,7 @@ def preprocess_image(image_path, invert=False):
             image = ImageOps.invert(image)
         # Preserve the digit's aspect ratio and center it on the model canvas.
         # Stretching a wide or tall scan to 28x28 can distort the digit shape.
-        image.thumbnail((28, 28), Image.Resampling.LANCZOS)
+        image = ImageOps.contain(image, (28, 28), Image.Resampling.LANCZOS)
         canvas = Image.new("L", (28, 28), color=0)
         offset = ((28 - image.width) // 2, (28 - image.height) // 2)
         canvas.paste(image, offset)
