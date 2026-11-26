@@ -1,6 +1,7 @@
 """Run inference for handwritten digit images using a saved MNIST model."""
 
 import torch
+import pickle
 from itertools import islice
 from PIL import Image, ImageOps
 from torchvision import transforms
@@ -10,6 +11,7 @@ from model import load_model
 NUM_CLASSES = 10
 DEFAULT_BATCH_SIZE = 32
 MAX_BATCH_SIZE = 1024
+MAX_INPUT_IMAGE_PIXELS = 16 * 1024 * 1024
 
 
 def preprocess_image(image_path, invert=False):
@@ -19,6 +21,8 @@ def preprocess_image(image_path, invert=False):
     trained model expects the usual MNIST light-digit-on-dark-background style.
     """
     with Image.open(image_path) as source_image:
+        if source_image.width * source_image.height > MAX_INPUT_IMAGE_PIXELS:
+            raise ValueError("Digit image exceeds the supported 16 Mi-pixel budget.")
         # Composite transparent pixels onto the model's dark background before
         # grayscale conversion. Otherwise hidden RGB values can become visible
         # and make transparent PNGs appear inverted or unexpectedly bright.
@@ -66,6 +70,8 @@ def _rank_predictions(probabilities, top_k):
 
 def _validate_logits(output, expected_shape):
     """Reject malformed or non-finite model output before applying softmax."""
+    if not torch.is_tensor(output) or not output.is_floating_point():
+        raise ValueError("Model logits must be a real floating-point tensor.")
     if output.ndim != 2 or tuple(output.shape) != expected_shape:
         raise ValueError(f"Model must return logits with shape {expected_shape}.")
     if not torch.isfinite(output).all():
@@ -153,7 +159,14 @@ def main(argv=None):
     )
     parser.add_argument("--json", action="store_true", help="Print only the structured digit prediction as JSON")
     args = parser.parse_args(argv)
-    result = predict(args.image_path, model_path=args.model, top_k=args.top_k, invert=args.invert, **({"print_report": False} if args.json else {}))
+    try:
+        _validate_top_k(args.top_k)
+    except ValueError as exc:
+        parser.error(str(exc))
+    try:
+        result = predict(args.image_path, model_path=args.model, top_k=args.top_k, invert=args.invert, **({"print_report": False} if args.json else {}))
+    except (OSError, ValueError, RuntimeError, EOFError, pickle.UnpicklingError, Image.DecompressionBombError) as exc:
+        parser.exit(1, f"Error predicting digit: {exc}\n")
     if args.json:
         print(json.dumps(result, allow_nan=False))
     return 0

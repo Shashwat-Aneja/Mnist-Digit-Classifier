@@ -88,3 +88,13 @@ Equal inference probabilities use ascending digit indexes as the deterministic t
 `iter_predictions(paths, batch_size=32)` yields predictions while retaining only one bounded chunk. `predict_batch` still returns a list. The iterator restores gradient mode before yielding to the caller.
 
 Local checkpoint paths are checked against a 16 MiB file-size budget before deserialization, well above the fixed classifier’s normal checkpoint size. This catches accidental oversized inputs; it is not a guarantee against every malformed archive. The loader still uses weights-only CPU deserialization and validates tensor shapes and finite values.
+
+Inference and evaluation require real floating-point tensor logits with the documented batch/class shape. Integer, complex, non-tensor, malformed, and non-finite outputs are rejected before ranking or softmax.
+
+Custom evaluation loaders are validated before model execution: finite float32 digit tensors, aligned non-empty integer labels, and digit indexes 0–9. This mirrors the supported training-image shape contract and prevents accidental broadcasting or non-finite evaluations.
+
+Seeded CPU training now restores the caller’s PyTorch CPU RNG state, including when training raises. Reproducibility is scoped to this training call; unseeded training retains normal global RNG consumption. No CUDA state-isolation guarantee is made by this CPU trainer.
+
+Custom images are limited to 16 Mi-pixels before EXIF transposition, RGBA compositing, or model-canvas allocation. The inclusive limit bounds the large intermediate image expansion; it is separate from the final 28×28 model tensor size.
+
+The prediction CLI validates top-k before model access (usage status 2) and reports normal image/model input failures with status 1 and a concise stderr diagnostic. Successful JSON mode stays machine-readable on stdout.
