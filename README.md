@@ -90,3 +90,5 @@ Equal inference probabilities use ascending digit indexes as the deterministic t
 Local checkpoint paths are checked against a 16 MiB file-size budget before deserialization, well above the fixed classifier’s normal checkpoint size. This catches accidental oversized inputs; it is not a guarantee against every malformed archive. The loader still uses weights-only CPU deserialization and validates tensor shapes and finite values.
 
 Inference and evaluation require real floating-point tensor logits with the documented batch/class shape. Integer, complex, non-tensor, malformed, and non-finite outputs are rejected before ranking or softmax.
+
+Custom evaluation loaders are validated before model execution: finite float32 digit tensors, aligned non-empty integer labels, and digit indexes 0–9. This mirrors the supported training-image shape contract and prevents accidental broadcasting or non-finite evaluations.
