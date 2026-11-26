@@ -10,6 +10,7 @@ from model import load_model
 NUM_CLASSES = 10
 DEFAULT_BATCH_SIZE = 32
 MAX_BATCH_SIZE = 1024
+MAX_INPUT_IMAGE_PIXELS = 16 * 1024 * 1024
 
 
 def preprocess_image(image_path, invert=False):
@@ -19,6 +20,8 @@ def preprocess_image(image_path, invert=False):
     trained model expects the usual MNIST light-digit-on-dark-background style.
     """
     with Image.open(image_path) as source_image:
+        if source_image.width * source_image.height > MAX_INPUT_IMAGE_PIXELS:
+            raise ValueError("Digit image exceeds the supported 16 Mi-pixel budget.")
         # Composite transparent pixels onto the model's dark background before
         # grayscale conversion. Otherwise hidden RGB values can become visible
         # and make transparent PNGs appear inverted or unexpectedly bright.

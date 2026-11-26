@@ -94,3 +94,5 @@ Inference and evaluation require real floating-point tensor logits with the docu
 Custom evaluation loaders are validated before model execution: finite float32 digit tensors, aligned non-empty integer labels, and digit indexes 0–9. This mirrors the supported training-image shape contract and prevents accidental broadcasting or non-finite evaluations.
 
 Seeded CPU training now restores the caller’s PyTorch CPU RNG state, including when training raises. Reproducibility is scoped to this training call; unseeded training retains normal global RNG consumption. No CUDA state-isolation guarantee is made by this CPU trainer.
+
+Custom images are limited to 16 Mi-pixels before EXIF transposition, RGBA compositing, or model-canvas allocation. The inclusive limit bounds the large intermediate image expansion; it is separate from the final 28×28 model tensor size.
