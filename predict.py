@@ -1,6 +1,7 @@
 """Run inference for handwritten digit images using a saved MNIST model."""
 
 import torch
+import pickle
 from itertools import islice
 from PIL import Image, ImageOps
 from torchvision import transforms
@@ -158,7 +159,14 @@ def main(argv=None):
     )
     parser.add_argument("--json", action="store_true", help="Print only the structured digit prediction as JSON")
     args = parser.parse_args(argv)
-    result = predict(args.image_path, model_path=args.model, top_k=args.top_k, invert=args.invert, **({"print_report": False} if args.json else {}))
+    try:
+        _validate_top_k(args.top_k)
+    except ValueError as exc:
+        parser.error(str(exc))
+    try:
+        result = predict(args.image_path, model_path=args.model, top_k=args.top_k, invert=args.invert, **({"print_report": False} if args.json else {}))
+    except (OSError, ValueError, RuntimeError, EOFError, pickle.UnpicklingError, Image.DecompressionBombError) as exc:
+        parser.exit(1, f"Error predicting digit: {exc}\n")
     if args.json:
         print(json.dumps(result, allow_nan=False))
     return 0
