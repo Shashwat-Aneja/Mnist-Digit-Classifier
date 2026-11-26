@@ -92,3 +92,5 @@ Local checkpoint paths are checked against a 16 MiB file-size budget before dese
 Inference and evaluation require real floating-point tensor logits with the documented batch/class shape. Integer, complex, non-tensor, malformed, and non-finite outputs are rejected before ranking or softmax.
 
 Custom evaluation loaders are validated before model execution: finite float32 digit tensors, aligned non-empty integer labels, and digit indexes 0–9. This mirrors the supported training-image shape contract and prevents accidental broadcasting or non-finite evaluations.
+
+Seeded CPU training now restores the caller’s PyTorch CPU RNG state, including when training raises. Reproducibility is scoped to this training call; unseeded training retains normal global RNG consumption. No CUDA state-isolation guarantee is made by this CPU trainer.

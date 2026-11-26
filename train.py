@@ -34,7 +34,7 @@ def validate_training_batch(images, labels):
     return labels.to(torch.int64)
 
 
-def train_model(output_path="model.pth", epochs=5, train_loader=None, seed=None):
+def _train_model(output_path="model.pth", epochs=5, train_loader=None, seed=None):
     if not isinstance(epochs, int) or isinstance(epochs, bool) or epochs < 1:
         raise ValueError("epochs must be a positive integer")
     if seed is not None:
@@ -75,6 +75,16 @@ def train_model(output_path="model.pth", epochs=5, train_loader=None, seed=None)
     destination.parent.mkdir(parents=True, exist_ok=True)
     save_checkpoint_atomic(model.state_dict(), destination)
     return model
+
+
+def train_model(output_path="model.pth", epochs=5, train_loader=None, seed=None):
+    if seed is None:
+        return _train_model(output_path, epochs, train_loader, seed)
+    if not isinstance(seed, int) or isinstance(seed, bool) or not 0 <= seed < 2**63:
+        raise ValueError("seed must be an integer from 0 through 2**63 - 1")
+    # This trainer uses CPU tensors; preserve the embedding application's CPU RNG.
+    with torch.random.fork_rng(devices=[]):
+        return _train_model(output_path, epochs, train_loader, seed)
 
 
 def main(argv=None):
