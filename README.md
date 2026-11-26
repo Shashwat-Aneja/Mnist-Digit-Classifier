@@ -88,3 +88,5 @@ Equal inference probabilities use ascending digit indexes as the deterministic t
 `iter_predictions(paths, batch_size=32)` yields predictions while retaining only one bounded chunk. `predict_batch` still returns a list. The iterator restores gradient mode before yielding to the caller.
 
 Local checkpoint paths are checked against a 16 MiB file-size budget before deserialization, well above the fixed classifier’s normal checkpoint size. This catches accidental oversized inputs; it is not a guarantee against every malformed archive. The loader still uses weights-only CPU deserialization and validates tensor shapes and finite values.
+
+Inference and evaluation require real floating-point tensor logits with the documented batch/class shape. Integer, complex, non-tensor, malformed, and non-finite outputs are rejected before ranking or softmax.

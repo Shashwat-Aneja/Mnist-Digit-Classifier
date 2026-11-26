@@ -66,6 +66,8 @@ def _rank_predictions(probabilities, top_k):
 
 def _validate_logits(output, expected_shape):
     """Reject malformed or non-finite model output before applying softmax."""
+    if not torch.is_tensor(output) or not output.is_floating_point():
+        raise ValueError("Model logits must be a real floating-point tensor.")
     if output.ndim != 2 or tuple(output.shape) != expected_shape:
         raise ValueError(f"Model must return logits with shape {expected_shape}.")
     if not torch.isfinite(output).all():
