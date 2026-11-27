@@ -98,3 +98,5 @@ Seeded CPU training now restores the caller’s PyTorch CPU RNG state, including
 Custom images are limited to 16 Mi-pixels before EXIF transposition, RGBA compositing, or model-canvas allocation. The inclusive limit bounds the large intermediate image expansion; it is separate from the final 28×28 model tensor size.
 
 The prediction CLI validates top-k before model access (usage status 2) and reports normal image/model input failures with status 1 and a concise stderr diagnostic. Successful JSON mode stays machine-readable on stdout.
+
+Checkpoint validation also checks the loaded destination tensors: finite float64 values that overflow float32 model parameters are rejected before inference.

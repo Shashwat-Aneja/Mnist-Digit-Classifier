@@ -27,6 +27,8 @@ def load_model(path="model.pth"):
     if not isinstance(weights, dict) or any(not torch.is_tensor(value) or value.is_complex() or not torch.isfinite(value).all() for value in weights.values()):
         raise ValueError("Model weights must be finite real tensors")
     model.load_state_dict(weights)
+    if any(not torch.isfinite(value).all() for value in model.state_dict().values()):
+        raise ValueError("Model weights exceed the destination tensor numeric range")
     model.eval()
     return model
 
