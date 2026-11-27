@@ -100,3 +100,5 @@ Custom images are limited to 16 Mi-pixels before EXIF transposition, RGBA compos
 The prediction CLI validates top-k before model access (usage status 2) and reports normal image/model input failures with status 1 and a concise stderr diagnostic. Successful JSON mode stays machine-readable on stdout.
 
 Checkpoint validation also checks the loaded destination tensors: finite float64 values that overflow float32 model parameters are rejected before inference.
+
+`python evaluate.py --model model.pth --json` reports per-digit support, predicted count, precision and recall (ratios), plus balanced accuracy as a percentage over classes with nonzero support. Undefined precision/recall are JSON null. Evaluation without a supplied loader retains the existing MNIST download behavior.
