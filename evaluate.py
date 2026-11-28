@@ -13,7 +13,7 @@ def validate_evaluation_batch(images, labels):
     return labels.to(torch.int64)
 
 
-def evaluate_model(model_path="model.pth", test_loader=None):
+def evaluate_model(model_path="model.pth", test_loader=None, print_report=True):
     model = load_model(model_path)
     if test_loader is None:
         transform = transforms.Compose([transforms.ToTensor()])
@@ -41,9 +41,33 @@ def evaluate_model(model_path="model.pth", test_loader=None):
         raise ValueError("Evaluation dataset contains no samples")
 
     accuracy = 100 * correct / total
-    print(f"Test Accuracy: {accuracy:.2f}%")
-    return {"accuracy": accuracy, "samples": total, "correct": correct, "confusion_matrix": confusion.tolist()}
+    if print_report:
+        print(f"Test Accuracy: {accuracy:.2f}%")
+    rows = []
+    for digit in range(10):
+        support = int(confusion[digit].sum())
+        predicted_count = int(confusion[:, digit].sum())
+        true_positive = int(confusion[digit, digit])
+        rows.append({"digit": digit, "support": support, "predicted_count": predicted_count,
+                     "precision": true_positive / predicted_count if predicted_count else None,
+                     "recall": true_positive / support if support else None})
+    supported = [row["recall"] for row in rows if row["support"]]
+    return {"accuracy": accuracy, "samples": total, "correct": correct, "confusion_matrix": confusion.tolist(),
+            "per_class": rows, "balanced_accuracy_percent": 100 * sum(supported) / len(supported)}
+
+def main(argv=None):
+    import argparse
+    import json
+    parser = argparse.ArgumentParser(description="Evaluate digit accuracy and per-class diagnostics")
+    parser.add_argument("--model", default="model.pth")
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args(argv)
+    result = evaluate_model(args.model, print_report=not args.json)
+    if args.json:
+        print(json.dumps(result, allow_nan=False))
+    return 0
+
 
 if __name__ == "__main__":
-    evaluate_model()
+    raise SystemExit(main())
 
